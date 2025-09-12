@@ -1,18 +1,18 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
-class DirectorCreate(BaseModel):
+class DirectorBase(BaseModel):
     name: str
     birth_date: Optional[str] = None
     nationality: Optional[str] = None
     bio: Optional[str] = None
 
-class DirectorRead(DirectorCreate):
+class DirectorCreate(DirectorBase):
+    pass
+
+class DirectorRead(DirectorBase):
     id: str
-    name: str
-    birth_date: Optional[str] = None
-    nationality: Optional[str] = None
-    bio: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
 class DirectorUpdate(BaseModel):
     name: Optional[str] = None
