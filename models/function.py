@@ -11,7 +11,6 @@ class Function(Base):
     auditorium_id = Column(String, ForeignKey('auditoriums.id'), nullable=False)
     start_time = Column(String, nullable=False)
     end_time = Column(String, nullable=False)
-    date = Column(String, nullable=False)
     price = Column(Integer, nullable=False)
     available_seats = Column(Integer, nullable=False)
 
@@ -19,4 +18,4 @@ class Function(Base):
     auditorium = relationship("Auditorium", backref="functions")
 
     def __repr__(self):
-        return f"<Function(id={self.id}, movie_id={self.movie_id}, auditorium_id={self.auditorium_id}, start_time={self.start_time}, end_time={self.end_time}, date={self.date}, price={self.price})>"
+        return f"<Function(id={self.id}, movie_id={self.movie_id}, auditorium_id={self.auditorium_id}, start_time={self.start_time}, end_time={self.end_time} price={self.price})>"
