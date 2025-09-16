@@ -15,10 +15,10 @@ app = FastAPI()
 Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
-@app.on_event("startup")
-def on_startup():
-    db = next(get_db())
-    load_data(db)
+# @app.on_event("startup")
+# def on_startup():
+#     db = next(get_db())
+#     load_data(db)
 
 app.include_router(genre_router)
 app.include_router(director_router)
