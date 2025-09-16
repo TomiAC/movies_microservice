@@ -1,4 +1,4 @@
-from crud.function import create_function, get_function, get_functions, update_function, delete_function, check_auditorium_free
+from crud.function import create_function, get_function, get_functions, delete_function, check_auditorium_free, get_active_functions
 from crud.movies import get_movie
 from crud.auditorium import get_auditorium
 from schemas.function import FunctionCreate, FunctionRead, FunctionUpdate, FunctionList
@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from datetime import datetime
+from typing import List
+
 
 function_router = APIRouter(prefix="/functions", tags=["functions"])
 
@@ -38,6 +40,10 @@ def function_get_endpoint(function_id: str, db: Session = Depends(get_db)) -> Fu
     if not db_function:
         raise HTTPException(status_code=404, detail="Function not found")
     return
+
+@function_router.get("/", response_model=FunctionList)
+def get_active_functions_endpoint(db: Session = Depends(get_db)) -> List[FunctionList]:
+    return get_active_functions(db)
 
 @function_router.get("/", response_model=FunctionList)
 def function_get_all_endpoint(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> FunctionList:

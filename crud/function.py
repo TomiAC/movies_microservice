@@ -31,6 +31,17 @@ def get_functions(db: Session, skip: int = 0, limit: int = 100) -> FunctionList:
         "size": limit,
     }
 
+def get_active_functions(db: Session) -> List[FunctionRead]:
+    now = datetime.now()
+    functions_list = db.query(Function).all()
+    active_functions = []
+    for function in functions_list:
+        function_start_time = datetime.strptime(function.start_time, "%Y-%m-%d %H:%M:%S")
+        if function_start_time < now:
+            active_functions.append(FunctionRead.model_validate(function))
+    return active_functions
+
+
 def delete_function(db: Session, function_id: str) -> FunctionRead | None:
     db_function = db.query(Function).filter(Function.id == function_id).first()
     if not db_function:
