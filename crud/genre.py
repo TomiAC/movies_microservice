@@ -27,6 +27,12 @@ def get_genres(db: Session, page: int = 1, size: int = 10) -> GenreList:
         size=size
     )
 
+def get_genre_by_name(name: str, db: Session) -> GenreRead | None:
+    genre = db.query(Genre).filter(Genre.name == name).first()
+    if not genre:
+        return None
+    return GenreRead.model_validate(genre)
+
 def update_genre(genre_id: str, genre: GenreUpdate, db: Session) -> GenreRead:
     existing_genre = db.query(Genre).filter(Genre.id == genre_id).first()
     if not existing_genre:

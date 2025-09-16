@@ -31,17 +31,6 @@ def get_functions(db: Session, skip: int = 0, limit: int = 100) -> FunctionList:
         "size": limit,
     }
 
-def update_function(db: Session, function_id: str, function_update: FunctionUpdate) -> FunctionRead | None:
-    db_function = db.query(Function).first(Function.id == function_id).first()
-    if not db_function:
-        return None
-    update_data = function_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_function, key, value)
-    db.commit()
-    db.refresh(db_function)
-    return FunctionRead.model_validate(db_function)
-
 def delete_function(db: Session, function_id: str) -> FunctionRead | None:
     db_function = db.query(Function).filter(Function.id == function_id).first()
     if not db_function:
@@ -58,6 +47,8 @@ def check_auditorium_free(db: Session, auditorium_id: str, start_time: datetime,
     for function in auditorium_functions_db:
         start_time_datetime = datetime.strptime(function.start_time, format_string)
         end_time_datetime = datetime.strptime(function.end_time, format_string)
-        if (end_time <= start_time_datetime) or (start_time >= end_time_datetime):
-            return False
-    return True
+        # An overlap occurs if the new function starts before the existing one ends,
+        # and the new function ends after the existing one starts.
+        if (start_time < end_time_datetime) and (end_time > start_time_datetime):
+            return False  # Overlap found, auditorium is not free
+    return True  # No overlaps found
