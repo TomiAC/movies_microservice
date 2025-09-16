@@ -5,6 +5,7 @@ from schemas.function import FunctionCreate, FunctionRead, FunctionUpdate, Funct
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
+from datetime import datetime
 
 function_router = APIRouter(prefix="/functions", tags=["functions"])
 
@@ -20,6 +21,10 @@ def function_create_endpoint(function: FunctionCreate, db: Session = Depends(get
         raise HTTPException(status_code=400, detail="Available seats cannot be greater than auditorium capacity")
     if not check_auditorium_free(db, function.auditorium_id, function.start_time, function.end_time):
         raise HTTPException(status_code=400, detail="Auditorium is not free")
+    if function.start_time > function.end_time:
+        raise HTTPException(status_code=400, detail="Start time cannot be after end time")
+    if function.start_time < datetime.now():
+        raise HTTPException(status_code=400, detail="Start time cannot be in the past")
     function.start_time = function.start_time.strftime("%Y-%m-%d %H:%M:%S")
     function.end_time = function.end_time.strftime("%Y-%m-%d %H:%M:%S")
     db_function = create_function(db, function)
