@@ -39,3 +39,21 @@ def client():
         
     # Drop the tables after the tests are done
     Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture
+def director_fixture(client):
+    response = client.post("/directors/", json={"name": "John Doe", "birth_date": "1970-01-01", "nationality": "USA", "bio": "Some bio"})
+    assert response.status_code == 200
+    return response.json()
+
+@pytest.fixture
+def genre_fixture(client):
+    response = client.post("/genres/", json={"name": "Action", "description": "Action movies"})
+    assert response.status_code == 200
+    return response.json()
+
+@pytest.fixture
+def cinema_fixture(client):
+    response = client.post("/cinemas/", json={"name": "Cinema City", "location": "123 Main St", "number": 1})
+    assert response.status_code == 200
+    return response.json()

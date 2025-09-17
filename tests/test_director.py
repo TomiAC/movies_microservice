@@ -1,11 +1,3 @@
-import pytest
-
-@pytest.fixture
-def director_fixture(client):
-    response = client.post("/directors/", json={"name": "John Doe", "birth_date": "1970-01-01", "nationality": "USA", "bio": "Some bio"})
-    assert response.status_code == 200
-    return response.json()
-
 def test_create_director(client):
     response = client.post("/directors/", json={"name": "Jane Doe", "birth_date": "1980-01-01", "nationality": "UK", "bio": "Another bio"})
     assert response.status_code == 200
