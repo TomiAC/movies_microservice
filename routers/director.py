@@ -4,11 +4,14 @@ from typing import List
 from schemas.director import DirectorCreate, DirectorRead, DirectorUpdate, DirectorList
 from dependencies import get_db
 from sqlalchemy.orm import Session
+from datetime import datetime, date
 
 director_router = APIRouter(prefix="/directors", tags=["directors"])
 
 @director_router.post("/", response_model=DirectorRead)
 async def create_director_endpoint(director: DirectorCreate, db: Session = Depends(get_db)):
+    if director.birth_date:
+        director.birth_date = director.birth_date.strftime("%Y-%m-%d")
     new_director = create_director(director, db)
     if not new_director:
         raise HTTPException(status_code=400, detail="Director could not be created")
