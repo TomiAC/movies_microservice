@@ -57,3 +57,20 @@ def cinema_fixture(client):
     response = client.post("/cinemas/", json={"name": "Cinema City", "location": "123 Main St", "number": 1})
     assert response.status_code == 200
     return response.json()
+
+@pytest.fixture
+def auditorium_fixture(client, cinema_fixture):
+    """Fixture to create an auditorium and return its data."""
+    cinema_id = cinema_fixture["id"]
+    response = client.post("/auditoriums/", json={"name": "1A", "cinema_id": cinema_id, "capacity": 100})
+    assert response.status_code == 200
+    return response.json()
+
+@pytest.fixture
+def movie_fixture(client, director_fixture, genre_fixture):
+    """Fixture to create a movie and return its data."""
+    director_id = director_fixture["id"]
+    genre_id = genre_fixture["id"]
+    response = client.post("/movies/", json={"title": "Test Movie", "year": "2022", "rating": 5, "description": "Test description", "language": "English", "duration": 1, "trailer": "https://example.com/trailer", "image": "https://example.com/image", "director": director_id, "genres": [genre_id]})
+    assert response.status_code == 200
+    return response.json()

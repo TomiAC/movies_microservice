@@ -38,7 +38,7 @@ def get_list_of_movies_by_title_like(name: str, db: Session):
     movies_query = db.query(Movie).filter(Movie.title.like(f"%{name}%")).all()
     return [MovieRead.model_validate(movie) for movie in movies_query]
 
-def get_movie_by_genre(genre_id: str, db: Session) -> List[MovieRead]:
+def get_movies_by_genre(genre_id: str, db: Session) -> List[MovieRead]:
     movies = db.query(Movie).filter(Movie.genres.any(id=genre_id)).all()
     return [MovieRead.model_validate(movie) for movie in movies]
 
