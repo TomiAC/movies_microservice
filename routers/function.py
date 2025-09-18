@@ -4,7 +4,7 @@ from crud.auditorium import get_auditorium
 from schemas.function import FunctionCreate, FunctionRead, FunctionUpdate, FunctionList
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db
+from dependencies import get_db
 from datetime import datetime
 from typing import List
 
@@ -12,7 +12,7 @@ from typing import List
 function_router = APIRouter(prefix="/functions", tags=["functions"])
 
 @function_router.post("/", response_model=FunctionRead)
-def function_create_endpoint(function: FunctionCreate, db: Session = Depends(get_db)) -> FunctionRead:
+async def function_create_endpoint(function: FunctionCreate, db: Session = Depends(get_db)) -> FunctionRead:
     movie = get_movie(function.movie_id, db)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -34,17 +34,24 @@ def function_create_endpoint(function: FunctionCreate, db: Session = Depends(get
         raise HTTPException(status_code=400, detail="Failed to create function")
     return FunctionRead.model_validate(db_function)
 
+@function_router.get("/all", response_model=FunctionList)
+async def function_get_all_endpoint(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> FunctionList:
+    return get_functions(db, skip, limit)
+
 @function_router.get("/{function_id}", response_model=FunctionRead)
-def function_get_endpoint(function_id: str, db: Session = Depends(get_db)) -> FunctionRead:
+async def function_get_endpoint(function_id: str, db: Session = Depends(get_db)) -> FunctionRead:
     db_function = get_function(db, function_id)
     if not db_function:
         raise HTTPException(status_code=404, detail="Function not found")
-    return
+    return db_function
 
-@function_router.get("/", response_model=FunctionList)
-def get_active_functions_endpoint(db: Session = Depends(get_db)) -> List[FunctionList]:
+@function_router.get("/", response_model=List[FunctionRead])
+async def get_active_functions_endpoint(db: Session = Depends(get_db)) -> List[FunctionRead]:
     return get_active_functions(db)
 
-@function_router.get("/", response_model=FunctionList)
-def function_get_all_endpoint(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> FunctionList:
-    return get_functions(db, skip, limit)
+@function_router.delete("/{function_id}", response_model=FunctionRead)
+async def function_delete_endpoint(function_id: str, db: Session = Depends(get_db)) -> FunctionRead:
+    db_function = delete_function(db, function_id)
+    if not db_function:
+        raise HTTPException(status_code=404, detail="Function not found")
+    return db_function

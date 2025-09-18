@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from schemas.auditorium import AuditoriumCreate, AuditoriumRead, AuditoriumUpdate, AuditoriumList
 from crud.auditorium import create_auditorium, get_auditorium, get_auditoriums, update_auditorium, delete_auditorium
 from crud.cinema import get_cinema
-from database import get_db
+from dependencies import get_db
 from sqlalchemy.orm import Session
 
 auditorium_router = APIRouter(prefix="/auditoriums", tags=["auditoriums"])

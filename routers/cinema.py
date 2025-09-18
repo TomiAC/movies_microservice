@@ -2,7 +2,7 @@ from crud.cinema import create_cinema, get_cinema, get_cinemas, update_cinema, d
 from schemas.cinema import CinemaCreate, CinemaUpdate, CinemaRead, CinemaList
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db
+from dependencies import get_db
 
 cinema_router = APIRouter(prefix="/cinemas", tags=["cinemas"])
 
