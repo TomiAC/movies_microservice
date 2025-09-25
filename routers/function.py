@@ -4,7 +4,8 @@ from crud.auditorium import get_auditorium
 from schemas.function import FunctionCreate, FunctionRead, FunctionUpdate, FunctionList
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from dependencies import get_db
+from dependencies import get_db, RoleRequired
+from schemas.user import UserRole
 from datetime import datetime
 from typing import List
 
@@ -12,7 +13,7 @@ from typing import List
 function_router = APIRouter(prefix="/functions", tags=["functions"])
 
 @function_router.post("/", response_model=FunctionRead)
-async def function_create_endpoint(function: FunctionCreate, db: Session = Depends(get_db)) -> FunctionRead:
+async def function_create_endpoint(function: FunctionCreate, db: Session = Depends(get_db), role: UserRole = Depends(RoleRequired([UserRole.ADMIN, UserRole.STAFF]))) -> FunctionRead:
     movie = get_movie(function.movie_id, db)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -46,11 +47,11 @@ async def function_get_endpoint(function_id: str, db: Session = Depends(get_db))
     return db_function
 
 @function_router.get("/", response_model=List[FunctionRead])
-async def get_active_functions_endpoint(db: Session = Depends(get_db)) -> List[FunctionRead]:
+async def get_active_functions_endpoint(db: Session = Depends(get_db), role: UserRole = Depends(RoleRequired([UserRole.ADMIN, UserRole.STAFF]))) -> List[FunctionRead]:
     return get_active_functions(db)
 
 @function_router.delete("/{function_id}", response_model=FunctionRead)
-async def function_delete_endpoint(function_id: str, db: Session = Depends(get_db)) -> FunctionRead:
+async def function_delete_endpoint(function_id: str, db: Session = Depends(get_db), role: UserRole = Depends(RoleRequired([UserRole.ADMIN, UserRole.STAFF]))) -> FunctionRead:
     db_function = delete_function(db, function_id)
     if not db_function:
         raise HTTPException(status_code=404, detail="Function not found")

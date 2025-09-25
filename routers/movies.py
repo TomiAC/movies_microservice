@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from schemas.movies import MovieCreate, MovieRead, MovieUpdate, MovieList
-from dependencies import get_db
+from schemas.user import UserRole
+from dependencies import get_db, RoleRequired
 from sqlalchemy.orm import Session
 from crud.movies import create_movie as create_movie_crud, get_movie, get_movies, update_movie, delete_movie, get_movie_by_title, get_list_of_movies_by_title_like, get_movies_by_genre
 from crud.director import get_director
@@ -10,7 +11,7 @@ from crud.genre import get_genre
 movie_router = APIRouter(prefix="/movies", tags=["movies"])
 
 @movie_router.post("/", response_model=MovieRead)
-async def create_movie(movie: MovieCreate, db: Session = Depends(get_db)):
+async def create_movie(movie: MovieCreate, db: Session = Depends(get_db), role: UserRole = Depends(RoleRequired([UserRole.ADMIN, UserRole.STAFF]))):
     director = get_director(movie.director, db)
     if not director:
         raise HTTPException(status_code=400, detail="Director not found")
@@ -50,7 +51,7 @@ async def get_movies_endpoint(page: int = 1, size: int = 10, db: Session = Depen
     return get_movies(db, page, size)
 
 @movie_router.put("/{movie_id}", response_model=MovieRead)
-async def update_movie_endpoint(movie_id: str, movie: MovieUpdate, db: Session = Depends(get_db)):
+async def update_movie_endpoint(movie_id: str, movie: MovieUpdate, db: Session = Depends(get_db), role: UserRole = Depends(RoleRequired([UserRole.ADMIN, UserRole.STAFF]))):
     existing_movie = get_movie(movie_id, db)
     if not existing_movie:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -58,7 +59,7 @@ async def update_movie_endpoint(movie_id: str, movie: MovieUpdate, db: Session =
     return updated_movie
 
 @movie_router.delete("/{movie_id}", response_model=MovieRead)
-async def delete_movie_endpoint(movie_id: str, db: Session = Depends(get_db)):
+async def delete_movie_endpoint(movie_id: str, db: Session = Depends(get_db), role: UserRole = Depends(RoleRequired([UserRole.ADMIN, UserRole.STAFF]))):
     movie = get_movie(movie_id, db)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")

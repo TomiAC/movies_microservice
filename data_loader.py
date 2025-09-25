@@ -14,9 +14,9 @@ from schemas.function import FunctionCreate
 
 def load_data(db: Session):
     # Create directors
-    director1 = create_director(DirectorCreate(name="Frank Darabont", bio="N/A", birth_date="N/A", nationality="N/A", image="N/A"), db)
-    director2 = create_director(DirectorCreate(name="Francis Ford Coppola", bio="N/A", birth_date="N/A", nationality="N/A", image="N/A"), db)
-    director3 = create_director(DirectorCreate(name="Christopher Nolan", bio="N/A", birth_date="N/A", nationality="N/A", image="N/A"), db)
+    director1 = create_director(DirectorCreate(name="Frank Darabont", bio="Some bio", birth_date="1959-01-28", nationality="USA", image="N/A"), db)
+    director2 = create_director(DirectorCreate(name="Francis Ford Coppola", bio="Some bio", birth_date="1939-04-07", nationality="N/A", image="N/A"), db)
+    director3 = create_director(DirectorCreate(name="Christopher Nolan", bio="Some bio", birth_date="1970-07-30", nationality="N/A", image="N/A"), db)
 
     # Create genres
     genre1 = create_genre(GenreCreate(name="Drama", description="N/A"), db)
@@ -40,7 +40,7 @@ def load_data(db: Session):
     auditorium3 = create_auditorium(db, AuditoriumCreate(name="Auditorium 3", cinema_id=cinema2.id, capacity=200))
 
     # Create functions
-    # function1 = create_function(db, FunctionCreate(movie_id=movie1.id, auditorium_id=auditorium1.id, start_time="2025-09-15 18:00:00", end_time="2025-09-15 20:22:00", price=10, available_seats=100))
-    # function2 = create_function(db, FunctionCreate(movie_id=movie2.id, auditorium_id=auditorium1.id, start_time="2025-09-15 21:00:00", end_time="2025-09-15 23:55:00", price=10, available_seats=100))
-    # function3 = create_function(db, FunctionCreate(movie_id=movie3.id, auditorium_id=auditorium2.id, start_time="2025-09-15 19:00:00", end_time="2025-09-15 21:32:00", price=12, available_seats=150))
-    # function4 = create_function(db, FunctionCreate(movie_id=movie4.id, auditorium_id=auditorium3.id, start_time="2025-09-15 20:00:00", end_time="2025-09-15 22:28:00", price=12, available_seats=200))
+    function1 = create_function(db, FunctionCreate(movie_id=movie1.id, auditorium_id=auditorium1.id, start_time="2025-09-25 18:00:00", end_time="2025-09-25 20:22:00", price=10, available_seats=100))
+    function2 = create_function(db, FunctionCreate(movie_id=movie2.id, auditorium_id=auditorium1.id, start_time="2025-09-25 21:00:00", end_time="2025-09-25 23:55:00", price=10, available_seats=100))
+    function3 = create_function(db, FunctionCreate(movie_id=movie3.id, auditorium_id=auditorium2.id, start_time="2025-09-25 19:00:00", end_time="2025-09-25 21:32:00", price=12, available_seats=150))
+    function4 = create_function(db, FunctionCreate(movie_id=movie4.id, auditorium_id=auditorium3.id, start_time="2025-09-25 20:00:00", end_time="2025-09-25 22:28:00", price=12, available_seats=200))

@@ -1,10 +1,20 @@
-def test_create_director(client):
-    response = client.post("/directors/", json={"name": "Jane Doe", "birth_date": "1980-01-01", "nationality": "UK", "bio": "Another bio"})
+def test_create_director(client, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
+    response = client.post("/directors/", json={"name": "Jane Doe", "birth_date": "1980-01-01", "nationality": "UK", "bio": "Another bio"}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Jane Doe"
     assert data["birth_date"] == "1980-01-01"
     assert "id" in data
+
+def test_create_director_unauthorized(client):
+    response = client.post("/directors/", json={"name": "Jane Doe", "birth_date": "1980-01-01", "nationality": "UK", "bio": "Another bio"})
+    assert response.status_code == 401
+
+def test_create_director_forbidden(client, user_token_fixture):
+    headers = {"Authorization": f"Bearer {user_token_fixture}"}
+    response = client.post("/directors/", json={"name": "Jane Doe", "birth_date": "1980-01-01", "nationality": "UK", "bio": "Another bio"}, headers=headers)
+    assert response.status_code == 403
 
 def test_read_director(client, director_fixture):
     director_id = director_fixture["id"]
@@ -14,8 +24,9 @@ def test_read_director(client, director_fixture):
     assert data["name"] == director_fixture["name"]
     assert data["birth_date"] == director_fixture["birth_date"]
 
-def test_read_all_directors(client, director_fixture):
-    client.post("/directors/", json={"name": "Jane Doe", "birth_date": "1980-01-01", "nationality": "UK", "bio": "Another bio"})
+def test_read_all_directors(client, director_fixture, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
+    client.post("/directors/", json={"name": "Jane Doe", "birth_date": "1980-01-01", "nationality": "UK", "bio": "Another bio"}, headers=headers)
     
     response = client.get("/directors/")
     assert response.status_code == 200
@@ -23,19 +34,21 @@ def test_read_all_directors(client, director_fixture):
     assert data["total"] == 2
     assert len(data["directors"]) == 2
 
-def test_update_director(client, director_fixture):
+def test_update_director(client, director_fixture, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
     director_id = director_fixture["id"]
     update_data = {"name": "John Smith", "nationality": "Canadian"}
-    response = client.put(f"/directors/{director_id}", json=update_data)
+    response = client.put(f"/directors/{director_id}", json=update_data, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == update_data["name"]
     assert data["nationality"] == update_data["nationality"]
     assert data["birth_date"] == director_fixture["birth_date"] # Assert that birth_date is unchanged
 
-def test_delete_director(client, director_fixture):
+def test_delete_director(client, director_fixture, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
     director_id = director_fixture["id"]
-    response = client.delete(f"/directors/{director_id}")
+    response = client.delete(f"/directors/{director_id}", headers=headers)
     assert response.status_code == 200
     assert response.json()["id"] == director_id
     
@@ -46,26 +59,30 @@ def test_read_director_not_found(client):
     response = client.get("/directors/non_existent_id")
     assert response.status_code == 404
 
-def test_update_director_not_found(client):
-    response = client.put("/directors/non_existent_id", json={"name": "New Name"})
+def test_update_director_not_found(client, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
+    response = client.put("/directors/non_existent_id", json={"name": "New Name"}, headers=headers)
     assert response.status_code == 404
 
-def test_delete_director_not_found(client):
-    response = client.delete("/directors/non_existent_id")
+def test_delete_director_not_found(client, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
+    response = client.delete("/directors/non_existent_id", headers=headers)
     assert response.status_code == 404
 
-def test_create_director_missing_field(client):
-    response = client.post("/directors/", json={"nationality": "USA"})
+def test_create_director_missing_field(client, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
+    response = client.post("/directors/", json={"nationality": "USA"}, headers=headers)
     assert response.status_code == 422 # Unprocessable Entity
 
-def test_get_directors_pagination(client):
+def test_get_directors_pagination(client, staff_token_fixture):
+    headers = {"Authorization": f"Bearer {staff_token_fixture}"}
     initial_response = client.get("/directors/")
     initial_data = initial_response.json()
     initial_total = initial_data.get("total", 0)
 
     # Create 15 directors
     for i in range(15):
-        client.post("/directors/", json={"name": f"Director {i}", "birth_date": f"1970-01-{i+1:02d}", "nationality": "USA"})
+        client.post("/directors/", json={"name": f"Director {i}", "birth_date": f"1970-01-{i+1:02d}", "nationality": "USA"}, headers=headers)
     
     response = client.get("/directors/")
     assert response.status_code == 200
