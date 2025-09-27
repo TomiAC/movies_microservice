@@ -1,6 +1,9 @@
 # Setup for an in-memory SQLite database for testing
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
+import os
+os.environ['TESTING'] = 'True'
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -108,11 +111,34 @@ def movie_fixture(client, director_fixture, genre_fixture, staff_token_fixture):
 
 @pytest.fixture
 def function_fixture(client, movie_fixture, auditorium_fixture, staff_token_fixture):
-    """Fixture to create a function and return its data."""
+    """Fixture to create a function and return its data, start_time, and end_time."""
     movie_id = movie_fixture["id"]
     auditorium_id = auditorium_fixture["id"]
     headers = {"Authorization": f"Bearer {staff_token_fixture}"}
-    response = client.post("/functions/", json={"movie_id": movie_id, "auditorium_id": auditorium_id, "start_time": "2025-09-30 15:00:00", "end_time": "2025-09-30 16:00:00", "available_seats": 100, "price": 10}, headers=headers)
+    
+    start_time = datetime.now() + timedelta(days=1)
+    end_time = start_time + timedelta(hours=1)
+    
+    start_time_iso = start_time.isoformat()
+    end_time_iso = end_time.isoformat()
+
+    response = client.post(
+        "/functions/",
+        json={
+            "movie_id": movie_id,
+            "auditorium_id": auditorium_id,
+            "start_time": start_time_iso,
+            "end_time": end_time_iso,
+            "available_seats": 100,
+            "price": 10,
+        },
+        headers=headers,
+    )
     assert response.status_code == 200
     response_data = response.json()
-    return response_data
+    
+    return {
+        "data": response_data,
+        "start_time": start_time_iso,
+        "end_time": end_time_iso,
+    }
