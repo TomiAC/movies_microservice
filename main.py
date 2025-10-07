@@ -11,7 +11,7 @@ from routers.cinema import cinema_router
 from routers.auditorium import auditorium_router
 from routers.function import function_router
 
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 # Get the testing environment variable
 TESTING = os.environ.get("TESTING")
@@ -20,10 +20,11 @@ TESTING = os.environ.get("TESTING")
 async def lifespan(app: FastAPI):
     # Startup logic
     print("Startup logic running...")
-    Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     if not TESTING:
-        db = next(get_db())
-        load_data(db)
+        async for db in get_db():
+            await load_data(db)
     yield
     # Shutdown logic (if any)
     print("Shutdown logic running...")

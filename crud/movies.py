@@ -1,15 +1,22 @@
 from models.movie import Movie
 from models.genre import Genre
+from models.movie_genre import MovieGenre
 from schemas.movies import MovieCreate, MovieRead, MovieUpdate, MovieList
 from fastapi import HTTPException
 from typing import List
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy import func
 
-def create_movie(movie: MovieCreate, db: Session) -> MovieRead:
+
+async def create_movie(movie: MovieCreate, db: AsyncSession) -> MovieRead:
+    print("Creating movie:", movie)
     movie_data = movie.model_dump()
     genre_ids = movie_data.pop("genres")
 
-    db_genres = db.query(Genre).filter(Genre.id.in_(genre_ids)).all()
+    result = await db.execute(select(Genre).where(Genre.id.in_(genre_ids)))
+    db_genres = result.scalars().all()
 
     if len(db_genres) != len(genre_ids):
         raise HTTPException(status_code=404, detail="One or more genres not found")
@@ -18,34 +25,46 @@ def create_movie(movie: MovieCreate, db: Session) -> MovieRead:
     new_movie.genres = db_genres
     
     db.add(new_movie)
-    db.commit()
-    db.refresh(new_movie)
-    return MovieRead.model_validate(new_movie)
+    await db.commit()
+    await db.refresh(new_movie)
+    
+    result = await db.execute(select(Movie).where(Movie.id == new_movie.id).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    created_movie = result.scalars().first()
+    
+    return MovieRead.model_validate(created_movie)
 
-def get_movie(movie_id: str, db: Session) -> MovieRead:
-    movie = db.query(Movie).filter(Movie.id == movie_id).first()
+async def get_movie(movie_id: str, db: AsyncSession) -> MovieRead:
+    result = await db.execute(select(Movie).where(Movie.id == movie_id).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    movie = result.scalars().first()
     if not movie:
         return None
     return MovieRead.model_validate(movie)
 
-def get_movie_by_title(title: str, db: Session) -> MovieRead:
-    movie = db.query(Movie).filter(Movie.title == title).first()
+async def get_movie_by_title(title: str, db: AsyncSession) -> MovieRead:
+    result = await db.execute(select(Movie).where(Movie.title == title).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    movie = result.scalars().first()
     if not movie:
         return None
     return MovieRead.model_validate(movie)
 
-def get_list_of_movies_by_title_like(name: str, db: Session):
-    movies_query = db.query(Movie).filter(Movie.title.like(f"%{name}%")).all()
+async def get_list_of_movies_by_title_like(name: str, db: AsyncSession):
+    result = await db.execute(select(Movie).where(Movie.title.like(f"%{name}%")).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    movies_query = result.scalars().all()
     return [MovieRead.model_validate(movie) for movie in movies_query]
 
-def get_movies_by_genre(genre_id: str, db: Session) -> List[MovieRead]:
-    movies = db.query(Movie).filter(Movie.genres.any(id=genre_id)).all()
+async def get_movies_by_genre(genre_id: str, db: AsyncSession) -> List[MovieRead]:
+    result = await db.execute(select(Movie).where(Movie.genres.any(id=genre_id)).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    movies = result.scalars().all()
     return [MovieRead.model_validate(movie) for movie in movies]
 
-def get_movies(db: Session, page: int = 1, size: int = 10) -> MovieList:
+async def get_movies(db: AsyncSession, page: int = 1, size: int = 10) -> MovieList:
     skip = (page - 1) * size
-    total = db.query(Movie).count()
-    movies = db.query(Movie).offset(skip).limit(size).all()
+    total_result = await db.execute(select(func.count(Movie.id)))
+    total = total_result.scalar()
+    
+    result = await db.execute(select(Movie).offset(skip).limit(size).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    movies = result.scalars().all()
+    
     return MovieList(
         movies=[MovieRead.model_validate(movie) for movie in movies],
         total=total,
@@ -53,31 +72,39 @@ def get_movies(db: Session, page: int = 1, size: int = 10) -> MovieList:
         size=size
     )
 
-def update_movie(movie_id: str, movie: MovieUpdate, db: Session) -> MovieRead:
-    existing_movie = db.query(Movie).filter(Movie.id == movie_id).first()
+async def update_movie(movie_id: str, movie: MovieUpdate, db: AsyncSession) -> MovieRead:
+    result = await db.execute(select(Movie).where(Movie.id == movie_id).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    existing_movie = result.scalars().first()
+
     if not existing_movie:
         return None
     
     update_data = movie.model_dump(exclude_unset=True)
     
     if "genres" in update_data:
-        genre_names = update_data.pop("genres")
-        db_genres = db.query(Genre).filter(Genre.name.in_(genre_names)).all()
-        if len(db_genres) != len(genre_names):
+        genre_ids = update_data.pop("genres")
+        result = await db.execute(select(Genre).where(Genre.id.in_(genre_ids)))
+        db_genres = result.scalars().all()
+        if len(db_genres) != len(genre_ids):
             raise HTTPException(status_code=404, detail="One or more genres not found")
         existing_movie.genres = db_genres
 
     for key, value in update_data.items():
         setattr(existing_movie, key, value)
         
-    db.commit()
-    db.refresh(existing_movie)
-    return MovieRead.model_validate(existing_movie)
+    await db.commit()
+    await db.refresh(existing_movie)
+    
+    result = await db.execute(select(Movie).where(Movie.id == existing_movie.id).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    updated_movie = result.scalars().first()
+    
+    return MovieRead.model_validate(updated_movie)
 
-def delete_movie(movie_id: str, db: Session) -> MovieRead:
-    movie = db.query(Movie).filter(Movie.id == movie_id).first()
+async def delete_movie(movie_id: str, db: AsyncSession) -> MovieRead:
+    result = await db.execute(select(Movie).where(Movie.id == movie_id).options(selectinload(Movie.genres_association).selectinload(MovieGenre.genre)))
+    movie = result.scalars().first()
     if not movie:
         return None
-    db.delete(movie)
-    db.commit()
+    await db.delete(movie)
+    await db.commit()
     return MovieRead.model_validate(movie)

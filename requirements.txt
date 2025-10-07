@@ -3,3 +3,6 @@ sqlalchemy
 python-dotenv
 pyjwt
 pytest
+aiosqlite
+pytest-asyncio
+httpx

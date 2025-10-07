@@ -1,26 +1,32 @@
 from models.director import Director
 from schemas.director import DirectorCreate, DirectorRead, DirectorUpdate, DirectorList
 from typing import List
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
-def create_director(director: DirectorCreate, db: Session) -> DirectorRead:
+async def create_director(director: DirectorCreate, db: AsyncSession) -> DirectorRead:
     new_director = Director(**director.model_dump())
     db.add(new_director)
-    db.commit()
-    db.refresh(new_director)
+    await db.commit()
+    await db.refresh(new_director)
     return DirectorRead.model_validate(new_director)
 
-def get_director(director_id: str, db: Session) -> DirectorRead | None:
-    director = db.query(Director).filter(Director.id == director_id).first()
+async def get_director(director_id: str, db: AsyncSession) -> DirectorRead | None:
+    result = await db.execute(select(Director).filter(Director.id == director_id))
+    director = result.scalars().first()
     if not director:
         return None
     return DirectorRead.model_validate(director)
 
-def get_directors(db: Session, page: int = 1, size: int = 10) -> DirectorList:
+async def get_directors(db: AsyncSession, page: int = 1, size: int = 10) -> DirectorList:
     skip = (page - 1) * size
-    total = db.query(Director).count()
-    directors_query = db.query(Director).offset(skip).limit(size).all()
-    directors = [DirectorRead.model_validate(director) for director in directors_query]
+    
+    total_result = await db.execute(select(func.count(Director.id)))
+    total = total_result.scalar_one()
+
+    directors_query = await db.execute(select(Director).offset(skip).limit(size))
+    directors = [DirectorRead.model_validate(director) for director in directors_query.scalars().all()]
+    
     return DirectorList(
         directors=directors,
         total=total,
@@ -28,8 +34,10 @@ def get_directors(db: Session, page: int = 1, size: int = 10) -> DirectorList:
         size=size
     )
 
-def update_director(director_id: str, director: DirectorUpdate, db: Session) -> DirectorRead | None:
-    update_director = db.query(Director).filter(Director.id == director_id).first()
+async def update_director(director_id: str, director: DirectorUpdate, db: AsyncSession) -> DirectorRead | None:
+    result = await db.execute(select(Director).filter(Director.id == director_id))
+    update_director = result.scalars().first()
+    
     if not update_director:
         return None
     
@@ -37,16 +45,17 @@ def update_director(director_id: str, director: DirectorUpdate, db: Session) -> 
     for key, value in update_data.items():
         setattr(update_director, key, value)
         
-    db.commit()
-    db.refresh(update_director)
+    await db.commit()
+    await db.refresh(update_director)
     return DirectorRead.model_validate(update_director)
 
-def delete_director(director_id: str, db: Session) -> DirectorRead | None:
-    director = db.query(Director).filter(Director.id == director_id).first()
+async def delete_director(director_id: str, db: AsyncSession) -> DirectorRead | None:
+    result = await db.execute(select(Director).filter(Director.id == director_id))
+    director = result.scalars().first()
     if not director:
         return None
     
     deleted_director = DirectorRead.model_validate(director)
-    db.delete(director)
-    db.commit()
+    await db.delete(director)
+    await db.commit()
     return deleted_director

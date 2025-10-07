@@ -1,25 +1,29 @@
 from models.genre import Genre
 from schemas.genre import GenreCreate, GenreRead, GenreUpdate, GenreList
-from typing import List
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.sql import func
 
-def create_genre(genre: GenreCreate, db: Session) -> GenreRead:
+async def create_genre(genre: GenreCreate, db: AsyncSession) -> GenreRead:
     new_genre = Genre(**genre.model_dump())
     db.add(new_genre)
-    db.commit()
-    db.refresh(new_genre)
+    await db.commit()
+    await db.refresh(new_genre)
     return GenreRead.model_validate(new_genre)
 
-def get_genre(genre_id: str, db: Session) -> GenreRead | None:
-    genre = db.query(Genre).filter(Genre.id == genre_id).first()
+async def get_genre(genre_id: str, db: AsyncSession) -> GenreRead | None:
+    result = await db.execute(select(Genre).filter(Genre.id == genre_id))
+    genre = result.scalar_one_or_none()
     if not genre:
         return None
     return GenreRead.model_validate(genre)
 
-def get_genres(db: Session, page: int = 1, size: int = 10) -> GenreList:
+async def get_genres(db: AsyncSession, page: int = 1, size: int = 10) -> GenreList:
     skip = (page - 1) * size
-    total = db.query(Genre).count()
-    genres = db.query(Genre).offset(skip).limit(size).all()
+    total_result = await db.execute(select(func.count(Genre.id)))
+    total = total_result.scalar()
+    genres_result = await db.execute(select(Genre).offset(skip).limit(size))
+    genres = genres_result.scalars().all()
     return GenreList(
         genres=[GenreRead.model_validate(genre) for genre in genres],
         total=total,
@@ -27,14 +31,16 @@ def get_genres(db: Session, page: int = 1, size: int = 10) -> GenreList:
         size=size
     )
 
-def get_genre_by_name(name: str, db: Session) -> GenreRead | None:
-    genre = db.query(Genre).filter(Genre.name == name).first()
+async def get_genre_by_name(name: str, db: AsyncSession) -> GenreRead | None:
+    result = await db.execute(select(Genre).filter(Genre.name == name))
+    genre = result.scalar_one_or_none()
     if not genre:
         return None
     return GenreRead.model_validate(genre)
 
-def update_genre(genre_id: str, genre: GenreUpdate, db: Session) -> GenreRead:
-    existing_genre = db.query(Genre).filter(Genre.id == genre_id).first()
+async def update_genre(genre_id: str, genre: GenreUpdate, db: AsyncSession) -> GenreRead:
+    result = await db.execute(select(Genre).filter(Genre.id == genre_id))
+    existing_genre = result.scalar_one_or_none()
     if not existing_genre:
         return None
     
@@ -42,14 +48,15 @@ def update_genre(genre_id: str, genre: GenreUpdate, db: Session) -> GenreRead:
     for key, value in update_data.items():
         setattr(existing_genre, key, value)
 
-    db.commit()
-    db.refresh(existing_genre)
+    await db.commit()
+    await db.refresh(existing_genre)
     return GenreRead.model_validate(existing_genre)
 
-def delete_genre(genre_id: str, db: Session) -> GenreRead:
-    genre = db.query(Genre).filter(Genre.id == genre_id).first()
+async def delete_genre(genre_id: str, db: AsyncSession) -> GenreRead:
+    result = await db.execute(select(Genre).filter(Genre.id == genre_id))
+    genre = result.scalar_one_or_none()
     if not genre:
         return None
-    db.delete(genre)
-    db.commit()
+    await db.delete(genre)
+    await db.commit()
     return GenreRead.model_validate(genre)

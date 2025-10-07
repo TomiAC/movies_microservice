@@ -3,25 +3,34 @@ from schemas.function import FunctionCreate, FunctionList, FunctionUpdate, Funct
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
+from sqlalchemy import select, func
 
-def create_function(db: Session, function: FunctionCreate) -> FunctionRead:
+
+async def create_function(db: Session, function: FunctionCreate) -> FunctionRead:
     db_function = Function(**function.model_dump())
     db.add(db_function)
-    db.commit()
-    db.refresh(db_function)
-    db_function.start_time = datetime.strptime(db_function.start_time, "%Y-%m-%d %H:%M:%S")
+    await db.commit()
+    await db.refresh(db_function)
+    db_function.start_time = datetime.strptime(
+        db_function.start_time, "%Y-%m-%d %H:%M:%S"
+    )
     db_function.end_time = datetime.strptime(db_function.end_time, "%Y-%m-%d %H:%M:%S")
     return FunctionRead.model_validate(db_function)
 
-def get_function(db: Session, function_id: str) -> FunctionRead | None:
-    db_function = db.query(Function).filter(Function.id == function_id).first()
+
+async def get_function(db: Session, function_id: str) -> FunctionRead | None:
+    result = await db.execute(select(Function).filter(Function.id == function_id))
+    db_function = result.scalar_one_or_none()
     if not db_function:
         return None
     return FunctionRead.model_validate(db_function)
 
-def get_functions(db: Session, skip: int = 0, limit: int = 100) -> FunctionList:
-    total = db.query(Function).count()
-    db_functions = db.query(Function).offset(skip).limit(limit).all()
+
+async def get_functions(db: Session, skip: int = 0, limit: int = 100) -> FunctionList:
+    total = await db.execute(select(func.count(Function.id)))
+    total = total.scalar()
+    result = await db.execute(select(Function).offset(skip).limit(limit))
+    db_functions = result.scalars().all()
     functions = [FunctionRead.model_validate(function) for function in db_functions]
     page = (skip // limit) + 1 if limit > 0 else 1
     return {
@@ -31,28 +40,39 @@ def get_functions(db: Session, skip: int = 0, limit: int = 100) -> FunctionList:
         "size": limit,
     }
 
-def get_active_functions(db: Session) -> List[FunctionRead]:
+
+async def get_active_functions(db: Session) -> List[FunctionRead]:
     now = datetime.now()
-    functions_list = db.query(Function).all()
+    result = await db.execute(select(Function))
+    functions_list = result.scalars().all()
     active_functions = []
     for function in functions_list:
-        function_start_time = datetime.strptime(function.start_time, "%Y-%m-%d %H:%M:%S")
+        function_start_time = datetime.strptime(
+            function.start_time, "%Y-%m-%d %H:%M:%S"
+        )
         if function_start_time < now:
             active_functions.append(FunctionRead.model_validate(function))
     return active_functions
 
 
-def delete_function(db: Session, function_id: str) -> FunctionRead | None:
-    db_function = db.query(Function).filter(Function.id == function_id).first()
+async def delete_function(db: Session, function_id: str) -> FunctionRead | None:
+    result = await db.execute(select(Function).filter(Function.id == function_id))
+    db_function = result.scalar_one_or_none()
     if not db_function:
         return None
-    db.delete(db_function)
-    db.commit()
+    await db.delete(db_function)
+    await db.commit()
     return FunctionRead.model_validate(db_function)
 
-def check_auditorium_free(db: Session, auditorium_id: str, start_time: datetime, end_time: datetime):
+
+async def check_auditorium_free(
+    db: Session, auditorium_id: str, start_time: datetime, end_time: datetime
+):
     format_string = "%Y-%m-%d %H:%M:%S"
-    auditorium_functions_db = db.query(Function).filter(Function.auditorium_id == auditorium_id).all()
+    result = await db.execute(
+        select(Function).filter(Function.auditorium_id == auditorium_id)
+    )
+    auditorium_functions_db = result.scalars().all()
     if not auditorium_functions_db:
         return True
     for function in auditorium_functions_db:

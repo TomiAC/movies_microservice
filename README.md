@@ -51,7 +51,7 @@ For more details, please refer to the source code in the `routers` directory.
 To run the tests, use the following command:
 
 ```bash
-pytest
+pytest --asyncio-mode=auto
 ```
 
 ---
@@ -106,5 +106,5 @@ Para más detalles, por favor consulta el código fuente en el directorio `route
 Para ejecutar las pruebas, utiliza el siguiente comando:
 
 ```bash
-pytest
+pytest --asyncio-mode=auto
 ```

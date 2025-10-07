@@ -14,12 +14,12 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 ALGORITHM = os.environ.get("ALGORITHM")
 
 
-def get_db():
+async def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
 
 
 def RoleRequired(allowed_roles: List[UserRole]):
